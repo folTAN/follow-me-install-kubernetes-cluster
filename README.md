@@ -2,7 +2,7 @@
 
 ![dashboard-home](./images/dashboard-home.png)
 
-本系列文档介绍使用二进制部署最新 `kubernetes v1.10.4` 集群的所有步骤，而不是使用 `kubeadm` 等自动化方式来部署集群。
+本系列文档介绍使用二进制部署最新 `kubernetes v1.14.2` 集群的所有步骤，而不是使用 `kubeadm` 等自动化方式来部署集群。
 
 在部署的过程中，将详细列出各组件的启动参数，它们的含义和可能遇到的问题。
 
@@ -16,7 +16,10 @@
 
 ## 历史版本
 
-[v1.6.2](https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.6.2)
++ [v1.6.2](https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.6.2)：已停止更新；
++ [v1.8.x](https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.8.x)：继续更新；
++ [v1.10.x](https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.10.x)：继续更新；
++ [v1.12.x](https://github.com/opsnull/follow-me-install-kubernetes-cluster/tree/v1.12.x)：继续更新；
 
 ## 步骤列表
 
@@ -25,10 +28,10 @@
 1. [02.创建CA证书和秘钥](02.创建CA证书和秘钥.md)			
 1. [03.部署kubectl命令行工具](03.部署kubectl命令行工具.md)			
 1. [04.部署etcd集群](04.部署etcd集群.md)				
-1. [05.部署flannel网络](05.部署flannel网络.md)			
-1. [06.部署master节点](06-0.部署master节点.md)
-    1. [06-1.ha.md](06-1.ha.md)
-    1. [06-2.api-server](06-2.api-server.md)	
+1. [05.部署flannel网络](05.部署flannel网络.md)		
+1. [06.apiserver高可用之nginx代理.md](06-0.apiserver高可用之nginx代理.md)
+1. [06-1.部署master节点](06-1.部署master节点.md)
+    1. [06-2.apiserver集群](06-2.apiserver集群.md)	
     1. [06-3.controller-manager集群](06-3.controller-manager集群.md)
     1. [06-4.scheduler集群](06-4.scheduler集群.md)		
 1. [07.部署worker节点](07-0.部署worker节点.md)
@@ -39,13 +42,13 @@
 1. [09.部署集群插件](09-0.部署集群插件.md)
     1. [09-1.dns插件](09-1.dns插件.md)
     1. [09-2.dashboard插件](09-2.dashboard插件.md)
-    1. [09-3.heapster插件](09-3.heapster插件.md)
-    1. [09-4.metrics-server插件](09-4.metrics-server插件.md)
-    1. [09-5.EFK插件](09-5.EFK插件.md)			
+    1. [09-3.metrics-server插件](09-3.metrics-server插件.md)
+    1. [09-4.EFK插件](09-4.EFK插件.md)			
 1. [10.部署Docker-Registry](10.部署Docker-Registry.md)	
 1. [11.部署Harbor-Registry](11.部署Harbor-Registry.md)	
 1. [12.清理集群](12.清理集群.md)
 1. [A.浏览器访问apiserver安全端口](A.浏览器访问kube-apiserver安全端口.md)
+1. [B.校验TLS证书](B.校验TLS证书.md)
 
 ## 在线阅读
 
@@ -65,8 +68,25 @@
   <img src="https://github.com/opsnull/follow-me-install-kubernetes-cluster/blob/master/images/weixin_qr.jpg?raw=true" alt="weixin_qr.jpg"/>
 </p>
 
+## 广告
+
+维护一个开源项目需要很多时间和精力，请点击下面的赞助商广告，给 opsnull 加杯 coffee 吧，谢谢！
+
+***
+
+### Kubernetes 微服务管理面板之 Kuboard （赞助推广）
+
+相较于 Kubernetes Dashboard，Kuboard 是一款操作型（可以直接在界面中编辑工作负载，无需编写 YAML 文件）的管理面板。同时，Kuboard 依据微服务参考架构对名称空间的工作负载进行分层显示，是一款基于 Kubernetes 的微服务管理面板。
+
++ [Kuboard 官网](https://www.kuboard.cn)
++ [在线体验(只读)](http://demo.kuboard.cn/#/dashboard?k8sToken=eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJrdWJvYXJkLXZpZXdlci10b2tlbi1mdGw0diIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJrdWJvYXJkLXZpZXdlciIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImE1YWFiMmQxLTQxMjYtNDU5Yi1hZmNhLTkyYzMwZDk0NTQzNSIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTprdWJvYXJkLXZpZXdlciJ9.eYqN3FLIT6xs0-lm8AidZtaiuHeX70QTn9FhJglhEyh5dlyMU5lo8UtR-h1OY8sTSeYdYKJAS83-9SUObKQhp6XNmRgOYAfZblKUy4mvbGVQ3dn_qnzxYxt6zdGCwIY7E34eNNd9IjMF7G_Y4eJLWE7NvkSB1O8zbdn8En9rQXv_xJ9-ugCyr4CYB1lDGuZl3CIXgQ1FWcQdUBrxTT95tzcNTB0l6OUOGhRxOfw-RyIOST83GV5U0iVzxnD4sjgSaJefvCU-BmwXgpxAwRVhFyHEziXXa0CuZfBfJbmnQW308B4wocr4QDm6Nvmli1P3B6Yo9-HNF__d2hCwZEr7eg)
+
+![kuboard](./images/kuboard.png)
+
+***
+
 ## 版权
 
-Copyright 2017-2018 zhangjun (geekard@qq.com)
+Copyright 2017-2019 zhangjun (geekard@qq.com)
 
 知识共享 署名-非商业性使用-相同方式共享 4.0（CC BY-NC-SA 4.0），详情见 [LICENSE](LICENSE) 文件。
